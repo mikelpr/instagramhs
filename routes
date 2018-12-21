@@ -1,0 +1,4 @@
+/latest CachedPostsR GET
+/#Int/img ImageR GET
+/#Int/meta MetaR GET
+/refresh RefreshR POST
