@@ -15,17 +15,13 @@ import Data.Text
 import GHC.Generics
 import Data.Aeson (ToJSON(..), Value(..), object, (.=), (.:), FromJSON(..), withObject)
 
-data PostMeta = PostMeta {
+data ParsedPost = ParsedPost {
+  displayUrl:: Text,
   caption:: Maybe Text,
   likes:: Int
 } deriving (Generic, Eq, Show, ToJSON)
 
-data CachedPost = CachedPost {
-  imagedata:: ByteString,
-  meta:: PostMeta
-}
-
-newtype App = App {cache:: IORef (IntMap CachedPost)}
+newtype App = App {postCache:: IORef (IntMap ParsedPost)}
 
 mkYesodData "App" $(parseRoutesFile "routes")
 

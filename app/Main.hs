@@ -8,4 +8,4 @@ import Data.IORef (newIORef)
 main :: IO ()
 main = do
   mem <- newIORef empty
-  warp 3000 App{cache = mem}
+  warp 3000 App{postCache = mem}

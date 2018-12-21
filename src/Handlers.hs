@@ -53,42 +53,40 @@ mediaparser = withObject "graph" $ \o -> do
 
 liftCache = do
   yesod <- getYesod
-  liftIO (readIORef $cache yesod)
+  liftIO (readIORef $postCache yesod)
 
 getCachedPostsR:: Handler TypedContent
 getCachedPostsR = do
   cached <- liftCache
-  sendStatusJSON Status.ok200 $IntMap.map meta cached
+  sendStatusJSON Status.ok200 cached
 
 getMetaR:: Int -> Handler RepJson
 getMetaR int = do
   cached <- liftCache
   case cached IntMap.!? int of
-    Just a -> sendStatusJSON Status.ok200 $meta a
+    Just a -> sendStatusJSON Status.ok200 a
     Nothing -> sendResponseStatus Status.notFound404 ()
 
-getImageR:: Int -> Handler TypedContent
-getImageR int = do
-  cached <- liftCache
-  case cached IntMap.!? int of
-    Just a -> sendResponseStatus Status.ok200 $TypedContent "image/jpeg" $toContent (imagedata a)
-    --Just a -> sendRawResponse (\src sink -> liftIO $ runConduit $ yield (imagedata a) .| sink)
-    --Just a -> sendStatusJSON Status.ok200 a
-    Nothing -> sendResponseStatus Status.notFound404 ()
+--getImageR:: Int -> Handler TypedContent
+--getImageR int = do
+--  cached <- liftCache
+--  case cached IntMap.!? int of
+--    Just a -> redirect 
+--    Nothing -> sendResponseStatus Status.notFound404 ()
 
 mkrq :: Request -> Request
 mkrq requrl =
   setRequestHeaders [("cookie","sessionid=1083240%3AHwonWAItrpChKp%3A15;")] $
   setRequestQueryString [("__a", Just "1")] requrl
 
-cacheposts:: [ParsePost] -> IO [IntMap.IntMap CachedPost]
+cacheposts:: [ParsePost] -> IO [IntMap.IntMap ParsedPost]
 cacheposts pp = do
   hackish <- newIORef IntMap.empty
   sequence $map (\post -> do
       let rq = parseRequest_ $unpack $_displayUrl post
       imgresponse <- httpBS $mkrq rq
       let bodybs = getResponseBody imgresponse
-      let nupost = CachedPost bodybs $PostMeta (_caption post) (_likes post)
+      let nupost = ParsedPost (_displayUrl post) (_caption post) (_likes post)
       liftIO (atomicModifyIORef' hackish (\ma -> (IntMap.insert (read $unpack $_id post) nupost ma, ma)))
     ) pp
 
@@ -104,7 +102,7 @@ postRefreshR = do
     --Just posts -> liftIO $cacheposts posts
     Just posts -> do
       nuposts <- liftIO $cacheposts posts
-      liftIO $atomicModifyIORef' (cache yesod) (const (last nuposts, ()))
+      liftIO $atomicModifyIORef' (postCache yesod) (const (last nuposts, ()))
     Nothing -> liftIO $print $getResponseStatus response
     --Nothing -> liftIO $print bodydec
   --liftIO $atomicModifyIORef' (cache yesod) (\intmap -> (IntMap.insert  set, set))
