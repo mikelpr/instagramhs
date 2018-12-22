@@ -3,17 +3,13 @@ version: "0.0.1"
 
 dependencies:
 - base
-- containers
 - directory
-- http-types
 - bytestring
 - text
 - aeson
-- conduit
 - http-client-tls
 - http-conduit
 
-# Runnable executable for our application
 executables:
   instagramhs:
     main: Main.hs

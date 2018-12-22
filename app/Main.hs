@@ -6,7 +6,6 @@
 import Prelude hiding(writeFile)
 import Network.HTTP.Simple
 import Data.ByteString.Lazy(writeFile)
-import Data.IntMap.Strict (empty)
 import Data.IORef
 import Data.Text(Text,unpack)
 import Data.Aeson
@@ -14,8 +13,8 @@ import Data.Aeson.Types
 import GHC.Generics
 import Control.Monad
 import System.Directory(getCurrentDirectory)
+import System.Environment(getEnv,getArgs)
 --import Data.Aeson (ToJSON(..), Value(..), object, (.=), (.:), FromJSON(..), withObject)
-import qualified Data.IntMap.Strict as IntMap
 
 data ParsePost = ParsePost {
   _displayUrl:: Text,
@@ -62,10 +61,12 @@ mkrq requrl =
 
 main :: IO ()
 main = do
-  putStrLn "Refreshing instagram latest posts' metadata"
+  args <- getArgs
+  let user = head args
+  putStrLn$ "Refreshing instagram latest posts' metadata for user " ++ user
   pwd <- getCurrentDirectory
-  putStrLn $ "(PWD: " ++ pwd ++ ")"
-  response <- httpLBS $mkrq "https://instagram.com/rollingstonemx"
+  putStrLn$ "(PWD: " ++ pwd ++ ")"
+  response <- httpLBS $mkrq (parseRequest_ $"https://instagram.com/" ++ user)
   let code = getResponseStatusCode response
   case code of
     200 -> do

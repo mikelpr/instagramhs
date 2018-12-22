@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 89ca5e581b9aa7ae6a3fedae0c11eec645757ce4a9b6e7ffda4a026257ed632a
+-- hash: 4866c0f2614d1a547b489a8158b9e7918afa20203fd1c811554b77cfc34faf9f
 
 name:           instagram-scraper
 version:        0.0.1
@@ -21,11 +21,8 @@ executable instagramhs
       aeson
     , base
     , bytestring
-    , conduit
-    , containers
     , directory
     , http-client-tls
     , http-conduit
-    , http-types
     , text
   default-language: Haskell2010

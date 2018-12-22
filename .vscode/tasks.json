@@ -4,9 +4,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "stack build & exec",
+      "label": "stack build",
       "type": "shell",
-      "command": "stack build --exec instagramhs",
+      "command": "stack build",
       "group": {
         "kind": "build",
         "isDefault": true
