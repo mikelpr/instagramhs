@@ -43,7 +43,7 @@ instance FromJSON ParsePost where
 
 mkrq :: Request -> Request
 mkrq requrl =
-  setRequestHeaders [("cookie","sessionid=1083240%3AHwonWAItrpChKp%3A15;")] $
+  setRequestHeaders [("cookie","sessionid=YOUR_INSTA_SESSION_ID;")] $
   setRequestQueryString [("__a", Just "1")] requrl
 
 mediaparser:: Value -> Parser [ParsePost]
@@ -69,7 +69,6 @@ main = do
   mem <- newIORef empty
   response <- httpLBS $mkrq "https://instagram.com/rollingstonemx"
   --let bodybs = getResponseBody response
-  --let bodydec = decode bodybs
   let bodydec = decode $ getResponseBody response
   case parseMaybe mediaparser =<< bodydec of
     Just posts -> do
