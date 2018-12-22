@@ -1,23 +1,17 @@
-name:    instagramhs
-version: "0.0.0"
+name:    instagram-scraper
+version: "0.0.1"
 
 dependencies:
 - base
-- yesod-core
 - containers
+- directory
 - http-types
 - bytestring
 - text
 - aeson
 - conduit
-- http-client
 - http-client-tls
 - http-conduit
-
-# The library contains all of our application code. The executable
-# defined below is just a thin wrapper.
-library:
-  source-dirs: src
 
 # Runnable executable for our application
 executables:
@@ -28,5 +22,3 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    dependencies:
-    - instagramhs

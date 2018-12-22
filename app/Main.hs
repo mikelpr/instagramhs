@@ -1,19 +1,20 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes       #-}
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE DeriveAnyClass    #-}
-import Application () -- for YesodDispatch instance
-import Foundation
-import Yesod.Core
 
+import Prelude hiding(writeFile)
 import Network.HTTP.Simple
+import Data.ByteString.Lazy(writeFile)
 import Data.IntMap.Strict (empty)
 import Data.IORef
 import Data.Text(Text,unpack)
 import Data.Aeson
 import Data.Aeson.Types
 import GHC.Generics
+import Control.Monad
+import System.Directory(getCurrentDirectory)
+--import Data.Aeson (ToJSON(..), Value(..), object, (.=), (.:), FromJSON(..), withObject)
 import qualified Data.IntMap.Strict as IntMap
 
 data ParsePost = ParsePost {
@@ -22,6 +23,12 @@ data ParsePost = ParsePost {
   _likes:: Int,
   _id:: Text
 } deriving (Generic, Show)
+
+data ParsedPost = ParsedPost {
+  caption:: Maybe Text,
+  likes:: Int,
+  displayUrl:: Text
+} deriving (Generic, Show, ToJSON)
 
 instance FromJSON ParsePost where
   parseJSON = withObject "node" $ \o -> do
@@ -41,11 +48,6 @@ instance FromJSON ParsePost where
       edge1 .: "count"
     return ParsePost{..}
 
-mkrq :: Request -> Request
-mkrq requrl =
-  setRequestHeaders [("cookie","sessionid=YOUR_INSTA_SESSION_ID;")] $
-  setRequestQueryString [("__a", Just "1")] requrl
-
 mediaparser:: Value -> Parser [ParsePost]
 mediaparser = withObject "graph" $ \o -> do
     graph <- o .: "graphql"
@@ -53,26 +55,27 @@ mediaparser = withObject "graph" $ \o -> do
     mediaEdge <- user .: "edge_owner_to_timeline_media"
     mediaEdge .: "edges"
 
-cacheposts:: [ParsePost] -> IO [IntMap.IntMap ParsedPost]
-cacheposts pp = do
-  hackish <- newIORef IntMap.empty
-  sequence $map (\post -> do
-      let rq = parseRequest_ $unpack $_displayUrl post
-      imgresponse <- httpBS $mkrq rq
-      let bodybs = getResponseBody imgresponse
-      let nupost = ParsedPost (_displayUrl post) (_caption post) (_likes post)
-      liftIO (atomicModifyIORef' hackish (\ma -> (IntMap.insert (read $unpack $_id post) nupost ma, ma)))
-    ) pp
+mkrq :: Request -> Request
+mkrq requrl =
+  setRequestHeaders [("cookie","sessionid=1083240%3AHwonWAItrpChKp%3A15;")] $
+  setRequestQueryString [("__a", Just "1")] requrl
 
 main :: IO ()
 main = do
-  mem <- newIORef empty
+  putStrLn "Refreshing instagram latest posts' metadata"
+  pwd <- getCurrentDirectory
+  putStrLn $ "(PWD: " ++ pwd ++ ")"
   response <- httpLBS $mkrq "https://instagram.com/rollingstonemx"
-  --let bodybs = getResponseBody response
-  let bodydec = decode $ getResponseBody response
-  case parseMaybe mediaparser =<< bodydec of
-    Just posts -> do
-      nuposts <- liftIO $cacheposts posts
-      liftIO $atomicModifyIORef' mem (const (last nuposts, ()))
-    Nothing -> fail "failed parsing instagram"
-  warp 3000 App{postCache = mem}
+  let code = getResponseStatusCode response
+  case code of
+    200 -> do
+      let bodydec = decode $ getResponseBody response
+      case parseMaybe mediaparser =<< bodydec of
+        Just posts -> do
+          mapM_
+            (\x -> writeFile (unpack (_id x)) $
+              encode $ ParsedPost (_caption x) (_likes x) (_displayUrl x))
+            posts
+          putStrLn "Done."
+        Nothing -> fail "failed parsing instagram return data."
+    _ -> fail$ "bad response code " ++ show code
