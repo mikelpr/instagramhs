@@ -3,12 +3,13 @@ version: "0.0.1"
 
 dependencies:
 - base
-- directory
-- bytestring
-- text
 - aeson
+- bytestring
+- containers
+- directory
 - http-client-tls
 - http-conduit
+- text
 
 executables:
   instagramhs:

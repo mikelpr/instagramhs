@@ -3,18 +3,19 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE DeriveAnyClass    #-}
 
-import Prelude hiding(writeFile)
 import Network.HTTP.Simple
-import Data.ByteString.Lazy(writeFile)
 import Data.IORef
 import Data.Text(Text,unpack)
 import Data.Aeson
 import Data.Aeson.Types
+import qualified Data.IntMap.Strict as IntMap
 import GHC.Generics
 import Control.Monad
 import System.Directory(getCurrentDirectory)
-import System.Environment(getEnv,getArgs)
---import Data.Aeson (ToJSON(..), Value(..), object, (.=), (.:), FromJSON(..), withObject)
+import System.Environment
+import System.IO(hPutStrLn,stderr)
+import qualified Data.ByteString.Char8 as BS8
+import qualified Data.ByteString.Lazy as BSL
 
 data ParsePost = ParsePost {
   _displayUrl:: Text,
@@ -47,36 +48,40 @@ instance FromJSON ParsePost where
       edge1 .: "count"
     return ParsePost{..}
 
-mediaparser:: Value -> Parser [ParsePost]
-mediaparser = withObject "graph" $ \o -> do
+userParser:: Value -> Parser [ParsePost]
+userParser = withObject "graph" $ \o -> do
     graph <- o .: "graphql"
     user <- graph .: "user"
     mediaEdge <- user .: "edge_owner_to_timeline_media"
     mediaEdge .: "edges"
 
-mkrq :: Request -> Request
-mkrq requrl =
-  setRequestHeaders [("cookie","sessionid=1083240%3AHwonWAItrpChKp%3A15;")] $
-  setRequestQueryString [("__a", Just "1")] requrl
-
 main :: IO ()
 main = do
+  myname <- getProgName
   args <- getArgs
-  let user = head args
-  putStrLn$ "Refreshing instagram latest posts' metadata for user " ++ user
+  sessid <- getEnv "_IG_SESSION_ID"
   pwd <- getCurrentDirectory
-  putStrLn$ "(PWD: " ++ pwd ++ ")"
-  response <- httpLBS $mkrq (parseRequest_ $"https://instagram.com/" ++ user)
-  let code = getResponseStatusCode response
-  case code of
-    200 -> do
-      let bodydec = decode $ getResponseBody response
-      case parseMaybe mediaparser =<< bodydec of
-        Just posts -> do
-          mapM_
-            (\x -> writeFile (unpack (_id x)) $
-              encode $ ParsedPost (_caption x) (_likes x) (_displayUrl x))
-            posts
-          putStrLn "Done."
-        Nothing -> fail "failed parsing instagram return data."
-    _ -> fail$ "bad response code " ++ show code
+  if length args /= 2 then fail $ "Usage: " ++ myname ++ " username_to_scrap outfileOr-"
+  else do
+    let [user, outfile] = args
+    logStrLn $ "Refreshing instagram latest posts' metadata for user " ++ user
+    logStrLn $ "(PWD: " ++ pwd ++ ")"
+    let mkrq requrl = (setRequestHeaders [("cookie", BS8.pack $ "sessionid=" ++ sessid ++ ";")] $
+                       setRequestQueryString [("__a", Just "1")] requrl)
+    response <- httpJSON $ mkrq (parseRequest_ $ "https://instagram.com/" ++ user)
+    let code = getResponseStatusCode response
+    case code of
+      200 ->
+        case parseMaybe userParser =<< getResponseBody response of
+          Just posts -> do
+            if outfile == ['-'] then BSL.putStr $ encode outmap
+            else do
+              encodeFile outfile outmap
+              logStrLn "Done."
+            where outmap = IntMap.fromList $
+                    map
+                      (\x -> (read $unpack (_id x), ParsedPost (_caption x) (_likes x) (_displayUrl x)))
+                      posts
+          Nothing -> fail "failed parsing instagram return data."
+      _ -> fail $ "bad response code " ++ show code
+    where logStrLn str = hPutStrLn stderr str
