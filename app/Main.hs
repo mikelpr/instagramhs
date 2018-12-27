@@ -5,13 +5,10 @@
 {-# LANGUAGE DeriveAnyClass    #-}
 
 import Network.HTTP.Simple
-import Data.IORef
 import Data.Text(Text,unpack)
 import Data.Aeson
 import Data.Aeson.Types
-import qualified Data.IntMap.Strict as IntMap
 import GHC.Generics
-import Control.Monad
 import System.Directory(getCurrentDirectory)
 import System.Environment
 import System.IO(hPutStrLn,stderr)
@@ -45,10 +42,10 @@ instance FromJSON ParsePost where
 
 userParser:: Value -> Parser [ParsePost]
 userParser = withObject "graph" $ \o -> do
-    graph <- o .: "graphql"
-    user <- graph .: "user"
-    mediaEdge <- user .: "edge_owner_to_timeline_media"
-    mediaEdge .: "edges"
+  graph <- o .: "graphql"
+  user <- graph .: "user"
+  mediaEdge <- user .: "edge_owner_to_timeline_media"
+  mediaEdge .: "edges"
 
 main :: IO ()
 main = do
@@ -73,8 +70,8 @@ main = do
             else do
               encodeFile outfile outmap
               logStrLn "Done."
-            where outmap = IntMap.fromList $ map
-                            (\(ParsePost (x,y)) -> (read $ unpack x, y))
+            where outmap = map 
+                            (\(ParsePost (x, y)) -> (x, y))
                             posts
           Nothing -> fail "failed parsing instagram return data."
       _ -> fail $ "bad response code " ++ show code
