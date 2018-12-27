@@ -1,3 +1,4 @@
+-- stack --resolver lts-13.0 script
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE DeriveGeneric     #-}
@@ -17,25 +18,19 @@ import System.IO(hPutStrLn,stderr)
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as BSL
 
-data ParsePost = ParsePost {
-  _displayUrl:: Text,
-  _caption:: Maybe Text,
-  _likes:: Int,
-  _id:: Text
-} deriving (Generic, Show)
-
-data ParsedPost = ParsedPost {
+data PostData = PostData {
   caption:: Maybe Text,
   likes:: Int,
   displayUrl:: Text
 } deriving (Generic, Show, ToJSON)
+newtype ParsePost = ParsePost (Text, PostData) -- (id, data)
 
 instance FromJSON ParsePost where
   parseJSON = withObject "node" $ \o -> do
     node <- o .: "node"
-    _id <- node .: "id"
-    _displayUrl <- node .: "display_url"
-    _caption <- do 
+    postId <- node .: "id"
+    displayUrl <- node .: "display_url"
+    caption <- do 
       edge1 <- node .: "edge_media_to_caption"
       edge2 <- edge1 .: "edges"
       case edge2 of
@@ -43,10 +38,10 @@ instance FromJSON ParsePost where
           edge3 <- x .: "node"
           edge3 .: "text"
         [] -> pure Nothing
-    _likes <- do
+    likes <- do
       edge1 <- node .: "edge_liked_by"
       edge1 .: "count"
-    return ParsePost{..}
+    return $ ParsePost (postId, PostData{..})
 
 userParser:: Value -> Parser [ParsePost]
 userParser = withObject "graph" $ \o -> do
@@ -66,22 +61,21 @@ main = do
     let [user, outfile] = args
     logStrLn $ "Refreshing instagram latest posts' metadata for user " ++ user
     logStrLn $ "(PWD: " ++ pwd ++ ")"
-    let mkrq requrl = (setRequestHeaders [("cookie", BS8.pack $ "sessionid=" ++ sessid ++ ";")] $
-                       setRequestQueryString [("__a", Just "1")] requrl)
+    let mkrq requrl = setRequestHeaders [("cookie", BS8.pack $ "sessionid=" ++ sessid ++ ";")] $
+                      setRequestQueryString [("__a", Just "1")] requrl
     response <- httpJSON $ mkrq (parseRequest_ $ "https://instagram.com/" ++ user)
     let code = getResponseStatusCode response
     case code of
       200 ->
         case parseMaybe userParser =<< getResponseBody response of
-          Just posts -> do
-            if outfile == ['-'] then BSL.putStr $ encode outmap
+          Just posts ->
+            if outfile == "-" then BSL.putStr $ encode outmap
             else do
               encodeFile outfile outmap
               logStrLn "Done."
-            where outmap = IntMap.fromList $
-                    map
-                      (\x -> (read $unpack (_id x), ParsedPost (_caption x) (_likes x) (_displayUrl x)))
-                      posts
+            where outmap = IntMap.fromList $ map
+                            (\(ParsePost (x,y)) -> (read $ unpack x, y))
+                            posts
           Nothing -> fail "failed parsing instagram return data."
       _ -> fail $ "bad response code " ++ show code
-    where logStrLn str = hPutStrLn stderr str
+    where logStrLn = hPutStrLn stderr
