@@ -1,4 +1,3 @@
--- stack --resolver lts-13.0 script
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE DeriveGeneric     #-}

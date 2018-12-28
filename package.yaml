@@ -1,11 +1,10 @@
 name:    instagram-scraper
-version: "0.0.2"
+version: "0.0.1.0"
 
 dependencies:
 - base
 - aeson
 - bytestring
-- containers
 - directory
 - http-client-tls
 - http-conduit
@@ -14,7 +13,7 @@ dependencies:
 executables:
   instagramhs:
     main: Main.hs
-    source-dirs: app
+    source-dirs: .
     ghc-options:
     - -threaded
     - -rtsopts
