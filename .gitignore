@@ -1,7 +1,4 @@
 dist*
-static/tmp/
-static/combined/
-config/client_session_key.aes
 *.hi
 *.o
 *.sqlite3
@@ -9,16 +6,10 @@ config/client_session_key.aes
 *.sqlite3-wal
 .hsenv*
 cabal-dev/
-.stack-work/
-.stack-work-devel/
-yesod-devel/
-.cabal-sandbox
 cabal.sandbox.config
-.DS_Store
 *.swp
 *.keter
 *~
 \#*
-*.cabal
 ignore
-.directory
+.*
