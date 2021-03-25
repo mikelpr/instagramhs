@@ -1,26 +1,8 @@
-{ghcver? "ghc844"}:
-
-let
-
-  bootstrap = import <nixpkgs> {};
-
-  nixpkgs-src = bootstrap.fetchFromGitHub {
-    owner = "NixOS";
-    repo  = "nixpkgs";
-    rev = "3fd87ad0073fd1ef71a8fcd1a1d1a89392c33d0a";
-    sha256 = "0n4ffwwfdybphx1iyqz1p7npk8w4n78f8jr5nq8ldnx2amrkfwhl";
-  };
-
-  config = {
-    allowUnfree = true;
-    allowBroken = true;
-    packageOverrides = pkgs: rec {
-      haskell = pkgs.haskell // {
-        packages = pkgs.haskell.packages // {
-          ghc = pkgs.haskell.packages.${ghcver};
-        };
-      };
-    };
-  };
-
- in import nixpkgs-src {inherit config;}
+import (builtins.fetchGit {
+  # Descriptive name to make the store path easier to identify
+  name = "nixos-unstable-2020-12-24";
+  url = "https://github.com/nixos/nixpkgs/";
+  # `git ls-remote https://github.com/nixos/nixpkgs nixos-unstable`
+  ref = "refs/heads/nixos-unstable";
+  rev = "e9158eca70ae59e73fae23be5d13d3fa0cfc78b4";
+}) {}

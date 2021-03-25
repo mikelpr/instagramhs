@@ -1,7 +1,8 @@
-{nixpkgs ? (import ./nixpkgs.nix {}).pkgsMusl, compiler ? "ghc844", strip ? true }:
+{ pkgs? ((import ./nixpkgs.nix).pkgsMusl)
+, compiler ? "ghc884"
+, strip ? true }:
 
 let
-  pkgs = nixpkgs.pkgsMusl;
   instagramhs = { mkDerivation, aeson, base, bytestring, directory, hpack, http-client-tls, http-conduit, stdenv, text }:
       mkDerivation {
         pname = "instagramhs";
@@ -25,10 +26,7 @@ let
           "--disable-executable-stripping"
         ] ;
       };
-
-  normalHaskellPackages = pkgs.haskell.packages.${compiler};
-  haskellPackages = with pkgs.haskell.lib; normalHaskellPackages;
   
-  drv = haskellPackages.callPackage instagramhs {};
+  drv = with pkgs.haskell.lib; pkgs.haskell.packages.${compiler}.callPackage instagramhs {};
 in
   if pkgs.lib.inNixShell then drv.env else drv
